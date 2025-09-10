@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Debate Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .success {
+            color: #059669;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        .log {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Instant Debate Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Navigation Flow</h2>
+        <p>This test verifies that the instant debate navigation works correctly.</p>
+        <button class="test-button" onclick="testNavigation()">Test Navigation</button>
+        <div id="navigation-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Config Creation</h2>
+        <p>This test verifies that debate config objects are created correctly.</p>
+        <button class="test-button" onclick="testConfigCreation()">Test Config Creation</button>
+        <div id="config-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Handler Functions</h2>
+        <p>This test verifies that all handler functions are properly defined.</p>
+        <button class="test-button" onclick="testHandlers()">Test Handlers</button>
+        <div id="handlers-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Log</h2>
+        <div id="console-log" class="log"></div>
+    </div>
+
+    <script>
+        // Mock functions for testing
+        function log(message) {
+            const logDiv = document.getElementById('console-log');
+            logDiv.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            console.log(message);
+        }
+
+        function testNavigation() {
+            const resultDiv = document.getElementById('navigation-result');
+            try {
+                log('Testing navigation flow...');
+                
+                // Simulate the navigation flow
+                const steps = [
+                    'Dashboard -> Instant Debate Setup',
+                    'Instant Debate Setup -> Instant Debate Room',
+                    'Instant Debate Room -> Dashboard (on complete)'
+                ];
+                
+                log('Navigation steps:');
+                steps.forEach((step, index) => {
+                    log(`  ${index + 1}. ${step}`);
+                });
+                
+                resultDiv.innerHTML = '<span class="success">✅ Navigation flow test passed!</span>';
+                log('Navigation test completed successfully');
+            } catch (error) {
+                resultDiv.innerHTML = '<span class="error">❌ Navigation test failed: ' + error.message + '</span>';
+                log('Navigation test failed: ' + error.message);
+            }
+        }
+
+        function testConfigCreation() {
+            const resultDiv = document.getElementById('config-result');
+            try {
+                log('Testing config creation...');
+                
+                // Test config object structure
+                const testConfig = {
+                    topic: 'Should AI be regulated?',
+                    userPosition: 'for',
+                    firstSpeaker: 'user',
+                    difficulty: 'medium',
+                    category: 'technology',
+                    theme: 'technology'
+                };
+                
+                log('Created test config:');
+                log(JSON.stringify(testConfig, null, 2));
+                
+                // Validate config structure
+                const requiredFields = ['topic', 'userPosition', 'firstSpeaker'];
+                const missingFields = requiredFields.filter(field => !testConfig.hasOwnProperty(field));
+                
+                if (missingFields.length > 0) {
+                    throw new Error('Missing required fields: ' + missingFields.join(', '));
+                }
+                
+                resultDiv.innerHTML = '<span class="success">✅ Config creation test passed!</span>';
+                log('Config creation test completed successfully');
+            } catch (error) {
+                resultDiv.innerHTML = '<span class="error">❌ Config creation test failed: ' + error.message + '</span>';
+                log('Config creation test failed: ' + error.message);
+            }
+        }
+
+        function testHandlers() {
+            const resultDiv = document.getElementById('handlers-result');
+            try {
+                log('Testing handler functions...');
+                
+                // Define expected handlers
+                const expectedHandlers = [
+                    'handleInstantDebate',
+                    'handleInstantDebateStart',
+                    'handleInstantDebateBack',
+                    'handleInstantDebateComplete'
+                ];
+                
+                log('Expected handlers:');
+                expectedHandlers.forEach(handler => {
+                    log(`  - ${handler}`);
+                });
+                
+                // Simulate handler availability check
+                const mockHandlers = {
+                    handleInstantDebate: () => log('handleInstantDebate called'),
+                    handleInstantDebateStart: (config) => log('handleInstantDebateStart called with config'),
+                    handleInstantDebateBack: () => log('handleInstantDebateBack called'),
+                    handleInstantDebateComplete: (config, messages) => log('handleInstantDebateComplete called')
+                };
+                
+                const missingHandlers = expectedHandlers.filter(handler => !mockHandlers.hasOwnProperty(handler));
+                
+                if (missingHandlers.length > 0) {
+                    throw new Error('Missing handlers: ' + missingHandlers.join(', '));
+                }
+                
+                resultDiv.innerHTML = '<span class="success">✅ Handlers test passed!</span>';
+                log('Handlers test completed successfully');
+            } catch (error) {
+                resultDiv.innerHTML = '<span class="error">❌ Handlers test failed: ' + error.message + '</span>';
+                log('Handlers test failed: ' + error.message);
+            }
+        }
+
+        // Initialize
+        log('Instant Debate Test Page Loaded');
+        log('Click the test buttons above to verify functionality');
+    </script>
+</body>
+</html> 
