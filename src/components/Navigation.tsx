@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -13,7 +12,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Coins, Crown, User, LogOut, Settings } from 'lucide-react';
+import { Coins, Crown, User, LogOut, Settings, TrendingUp } from 'lucide-react';
 
 interface NavigationProps {
   userTokens: number;
@@ -21,6 +20,7 @@ interface NavigationProps {
   onRoleSwitch: (role: 'student' | 'teacher') => void;
   onGetPremium: () => void;
   onSignOut: () => void;
+  onProgressTracking?: () => void;
   user: any;
   isAuthenticated: boolean;
 }
@@ -31,6 +31,7 @@ const Navigation = ({
   onRoleSwitch, 
   onGetPremium, 
   onSignOut,
+  onProgressTracking,
   user,
   isAuthenticated 
 }: NavigationProps) => {
@@ -112,6 +113,10 @@ const Navigation = ({
                   <DropdownMenuItem className="rounded-lg hover:bg-neutral-50 transition-colors duration-200">
                     <Settings className="mr-3 h-4 w-4 text-azul" />
                     <span className="text-neutral-700">Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onProgressTracking} className="rounded-lg hover:bg-neutral-50 transition-colors duration-200">
+                    <TrendingUp className="mr-3 h-4 w-4 text-azul" />
+                    <span className="text-neutral-700">Progress Tracking</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="my-2 bg-neutral-200" />
                   <DropdownMenuItem onClick={onSignOut} className="rounded-lg hover:bg-red-50 text-red-600 transition-colors duration-200">

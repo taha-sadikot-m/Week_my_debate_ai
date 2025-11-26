@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,7 @@ import AICoach from '@/components/AICoach';
 import EventRegistrationModal from '@/components/EventRegistrationModal';
 import { ErrorBoundary } from '../ErrorBoundary';
 import OneOnOneDebateHub from '@/components/debate/one-on-one/OneOnOneDebateHub';
+import ProgressTracking from '@/components/ProgressTracking';
 
 interface UtilityViewsProps {
   currentView: string;
@@ -60,6 +60,7 @@ interface UtilityViewsProps {
     handleChanakyaDebateComplete: (config: any, messages: any[]) => void;
     handleViewEvent?: (event: any) => void;
     handleBackToEvents?: () => void;
+    handleProgressTracking?: () => void;
   };
 }
 
@@ -158,6 +159,9 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
 
     case 'one-on-one':
       return <OneOnOneDebateHub onBack={handlers.handleBackToDashboard} />;
+
+    case 'progress-tracking':
+      return <ProgressTracking onBack={handlers.handleBackToDashboard} />;
       
     case 'live-debate-selection':
       return (

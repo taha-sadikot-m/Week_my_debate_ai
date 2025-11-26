@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 import StudentDashboard from '@/components/StudentDashboard';
 import TeacherDashboard from '@/components/TeacherDashboard';
@@ -22,6 +21,7 @@ interface DashboardViewProps {
     handleAICoach: () => void;
     handleChanakyaDebate: () => void;
     handleOneOnOneDebate: () => void;
+    handleProgressTracking: () => void;
   };
   requireAuth?: (callback: () => void) => void;
   isAuthenticated?: boolean;
@@ -46,6 +46,7 @@ const DashboardView = ({ userRole, userTokens, handlers, requireAuth, isAuthenti
       onAICoach={handlers.handleAICoach}
       onChanakyaDebate={handlers.handleChanakyaDebate}
       onOneOnOneDebate={handlers.handleOneOnOneDebate}
+      onProgressTracking={handlers.handleProgressTracking}
       requireAuth={requireAuth}
       isAuthenticated={isAuthenticated}
     />

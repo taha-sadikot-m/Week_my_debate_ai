@@ -23,6 +23,17 @@ const ChallengeCreation = ({ onBack, onChallengeCreated }: ChallengeCreationProp
   const { toast } = useToast();
   const { user, loading: authLoading } = useCustomAuth();
 
+  const suggestedTopics = [
+    "AI will replace human teachers within 20 years",
+    "Social media does more harm than good to society",
+    "Universal Basic Income is necessary for the future",
+    "Space exploration is a waste of resources",
+    "Remote work should be the new standard",
+    "Cryptocurrency is the future of finance",
+    "Video games contribute to violence",
+    "Climate change is the single biggest threat to humanity"
+  ];
+
   useEffect(() => {
     const fetchUsers = async () => {
       if (authLoading) {
@@ -112,6 +123,22 @@ const ChallengeCreation = ({ onBack, onChallengeCreated }: ChallengeCreationProp
               className="bg-gray-800 border-gray-700 text-white"
               required
             />
+            
+            <div className="mt-3">
+              <p className="text-xs text-gray-400 mb-2">Or choose a suggested topic:</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestedTopics.map((suggestedTopic, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setTopic(suggestedTopic)}
+                    className="text-xs px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700 text-gray-300 hover:bg-cyan-900/30 hover:text-cyan-400 hover:border-cyan-500/50 transition-all duration-200 text-left"
+                  >
+                    {suggestedTopic}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">

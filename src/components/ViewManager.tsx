@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 import DashboardView from '@/components/views/DashboardView';
 import MunModeView from '@/components/views/MunModeView';
@@ -87,6 +86,7 @@ interface ViewManagerProps {
     handleChanakyaDebateBack: () => void;
     handleChanakyaDebateComplete: (config: any, messages: any[]) => void;
     handleOneOnOneDebate: () => void;
+    handleProgressTracking: () => void;
   };
   requireAuth?: (callback: () => void) => void;
   isAuthenticated?: boolean;
@@ -180,6 +180,7 @@ const ViewManager = ({
       case 'chanakya-debate-room':
       case 'ai-coach':
       case 'one-on-one':
+      case 'progress-tracking':
         return (
           <UtilityViews
             currentView={currentView}

@@ -279,6 +279,10 @@ export const useAppHandlers = ({
     setCurrentView('one-on-one');
   };
 
+  const handleProgressTracking = () => {
+    setCurrentView('progress-tracking');
+  };
+
   return {
     handleStartDebate,
     handleJoinMUN,
@@ -316,6 +320,7 @@ export const useAppHandlers = ({
     handleChanakyaDebateComplete,
     handleViewEvent,
     handleBackToEvents,
-    handleOneOnOneDebate
+    handleOneOnOneDebate,
+    handleProgressTracking
   };
 };

@@ -16,7 +16,7 @@ export const CT = {
       subtitle: "Transform every idea into impact through adaptive AI, real-time feedback, and global collaboration.",
       
       chanakyaAI: {
-        title: "Chanakya AI",
+        title: "Play with Chanakya",
         description: "Debate with the best. Your ultimate speaking mentor available 24×7 to challenge, refine, and elevate your skills.",
         badge: "24/7 Ready"
       },

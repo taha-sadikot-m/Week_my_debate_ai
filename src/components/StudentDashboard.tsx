@@ -34,6 +34,7 @@ interface StudentDashboardProps {
   onAICoach: () => void;
   onChanakyaDebate?: () => void;
   onOneOnOneDebate: () => void;
+  onProgressTracking?: () => void;
   requireAuth?: (callback: () => void) => void;
   isAuthenticated?: boolean;
 }
@@ -55,6 +56,7 @@ const StudentDashboard = ({
   onAICoach,
   onChanakyaDebate,
   onOneOnOneDebate,
+  onProgressTracking,
   requireAuth,
   isAuthenticated
 }: StudentDashboardProps) => {
@@ -97,6 +99,10 @@ const StudentDashboard = ({
               <DropdownMenuItem className="rounded-xl hover:bg-gray-800 text-gray-50 transition-colors duration-200">
                 <Settings className="mr-3 h-4 w-4" />
                 <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onProgressTracking} className="rounded-xl hover:bg-gray-800 text-gray-50 transition-colors duration-200">
+                <TrendingUp className="mr-3 h-4 w-4" />
+                <span>Progress Tracking</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => signOut()} className="rounded-xl hover:bg-red-900/50 text-red-400 transition-colors duration-200">
@@ -259,7 +265,7 @@ const StudentDashboard = ({
                     </div>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-50 mb-3 text-center relative z-10">
-                    1:1 Debate Arena
+                    Play with Friend
                   </h3>
                   <p className="text-gray-300 text-center text-sm leading-relaxed mb-4 flex-grow relative z-10">
                     Challenge opponents, record arguments, and master the art of debate in turn-based combat.
@@ -275,10 +281,10 @@ const StudentDashboard = ({
               {/* Debate with Chanakya - Neon Card Design */}
               <div className="h-80 group cursor-pointer" onClick={() => requireAuth ? requireAuth(onChanakyaDebate || onInstantDebate) : (onChanakyaDebate ? onChanakyaDebate() : onInstantDebate())}>
                 <div className="h-full card-neon p-6 hover:card-neon-glow transition-all duration-500 hover:-translate-y-2 flex flex-col relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-cyan-400/20 to-transparent rounded-bl-3xl"></div>
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-fuchsia-500/20 to-transparent rounded-bl-3xl"></div>
                   <div className="flex justify-center mb-4 relative z-10">
-                    <div className="gradient-neon-primary p-4 rounded-xl shadow-neon-cyan group-hover:scale-110 transition-all duration-300">
-                      <Brain className="h-8 w-8 text-gray-950" />
+                    <div className="gradient-neon-secondary p-4 rounded-xl shadow-neon-pink group-hover:scale-110 transition-all duration-300">
+                      <Brain className="h-8 w-8 text-white" />
                     </div>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-50 mb-3 text-center relative z-10">
@@ -288,7 +294,7 @@ const StudentDashboard = ({
                     {CT.dashboard.features.chanakyaAI.description}
                   </p>
                   <div className="flex justify-center mt-auto relative z-10">
-                    <span className="badge-neon font-medium">
+                    <span className="badge-neon-pink font-medium">
                       {CT.dashboard.features.chanakyaAI.badge}
                     </span>
                   </div>
@@ -296,7 +302,7 @@ const StudentDashboard = ({
               </div>
 
               {/* MUN World - Neon Card Design */}
-              <div className="h-80 group cursor-pointer" onClick={() => requireAuth ? requireAuth(onJoinMUN) : onJoinMUN()}>
+              {/* <div className="h-80 group cursor-pointer" onClick={() => requireAuth ? requireAuth(onJoinMUN) : onJoinMUN()}>
                 <div className="h-full card-neon p-6 hover:card-neon-glow transition-all duration-500 hover:-translate-y-2 flex flex-col relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-fuchsia-500/20 to-transparent rounded-bl-3xl"></div>
                   <div className="flex justify-center mb-4 relative z-10">
@@ -316,7 +322,7 @@ const StudentDashboard = ({
                     </span>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Events - Neon Card Design */}
               <div className="h-80 group cursor-pointer" onClick={onViewEvents}>
