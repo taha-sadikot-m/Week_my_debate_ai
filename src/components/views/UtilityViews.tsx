@@ -23,6 +23,7 @@ import ChanakyaDebateRoom from '@/components/ChanakyaDebateRoom';
 import AICoach from '@/components/AICoach';
 import EventRegistrationModal from '@/components/EventRegistrationModal';
 import { ErrorBoundary } from '../ErrorBoundary';
+import OneOnOneDebateHub from '@/components/debate/one-on-one/OneOnOneDebateHub';
 
 interface UtilityViewsProps {
   currentView: string;
@@ -154,6 +155,9 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
   switch (currentView) {
     case 'ai-coach':
       return <AICoach onBack={handlers.handleBackToDashboard} />;
+
+    case 'one-on-one':
+      return <OneOnOneDebateHub onBack={handlers.handleBackToDashboard} />;
       
     case 'live-debate-selection':
       return (

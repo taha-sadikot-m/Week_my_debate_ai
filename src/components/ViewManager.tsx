@@ -86,6 +86,7 @@ interface ViewManagerProps {
     handleChanakyaDebateStart: (config: any) => void;
     handleChanakyaDebateBack: () => void;
     handleChanakyaDebateComplete: (config: any, messages: any[]) => void;
+    handleOneOnOneDebate: () => void;
   };
   requireAuth?: (callback: () => void) => void;
   isAuthenticated?: boolean;
@@ -178,6 +179,7 @@ const ViewManager = ({
       case 'chanakya-debate-setup':
       case 'chanakya-debate-room':
       case 'ai-coach':
+      case 'one-on-one':
         return (
           <UtilityViews
             currentView={currentView}

@@ -21,6 +21,7 @@ interface DashboardViewProps {
     handleInstantDebate: () => void;
     handleAICoach: () => void;
     handleChanakyaDebate: () => void;
+    handleOneOnOneDebate: () => void;
   };
   requireAuth?: (callback: () => void) => void;
   isAuthenticated?: boolean;
@@ -44,6 +45,7 @@ const DashboardView = ({ userRole, userTokens, handlers, requireAuth, isAuthenti
       onInstantDebate={handlers.handleInstantDebate}
       onAICoach={handlers.handleAICoach}
       onChanakyaDebate={handlers.handleChanakyaDebate}
+      onOneOnOneDebate={handlers.handleOneOnOneDebate}
       requireAuth={requireAuth}
       isAuthenticated={isAuthenticated}
     />

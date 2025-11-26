@@ -275,6 +275,10 @@ export const useAppHandlers = ({
     setCurrentView('events');
   };
 
+  const handleOneOnOneDebate = () => {
+    setCurrentView('one-on-one');
+  };
+
   return {
     handleStartDebate,
     handleJoinMUN,
@@ -311,6 +315,7 @@ export const useAppHandlers = ({
     handleChanakyaDebateBack,
     handleChanakyaDebateComplete,
     handleViewEvent,
-    handleBackToEvents
+    handleBackToEvents,
+    handleOneOnOneDebate
   };
 };

@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Coins, Trophy, TrendingUp, Users, Star, Award, Target, Zap, Brain, Globe, Mic, BookOpen, Bot, Eye, Settings, History, Calendar, Newspaper, Sparkles, ChevronRight, ChevronDown, ChevronUp, Crown, User, LogOut } from 'lucide-react';
+import { Coins, Trophy, TrendingUp, Users, Star, Award, Target, Zap, Brain, Globe, Mic, BookOpen, Bot, Eye, Settings, History, Calendar, Newspaper, Sparkles, ChevronRight, ChevronDown, ChevronUp, Crown, User, LogOut, Swords } from 'lucide-react';
 import MainMenuCard from '@/components/dashboard/MainMenuCard';
 import RecentDebatesCard from '@/components/dashboard/RecentDebatesCard';
 import FreudAnalysisCard from '@/components/dashboard/FreudAnalysisCard';
@@ -33,6 +33,7 @@ interface StudentDashboardProps {
   onInstantDebate: () => void;
   onAICoach: () => void;
   onChanakyaDebate?: () => void;
+  onOneOnOneDebate: () => void;
   requireAuth?: (callback: () => void) => void;
   isAuthenticated?: boolean;
 }
@@ -53,6 +54,7 @@ const StudentDashboard = ({
   onInstantDebate,
   onAICoach,
   onChanakyaDebate,
+  onOneOnOneDebate,
   requireAuth,
   isAuthenticated
 }: StudentDashboardProps) => {
@@ -247,6 +249,29 @@ const StudentDashboard = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
               
+              {/* 1:1 Debate Arena - Neon Card Design */}
+              <div className="h-80 group cursor-pointer" onClick={() => requireAuth ? requireAuth(onOneOnOneDebate) : onOneOnOneDebate()}>
+                <div className="h-full card-neon p-6 hover:card-neon-glow transition-all duration-500 hover:-translate-y-2 flex flex-col relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-cyan-400/20 to-transparent rounded-bl-3xl"></div>
+                  <div className="flex justify-center mb-4 relative z-10">
+                    <div className="gradient-neon-primary p-4 rounded-xl shadow-neon-cyan group-hover:scale-110 transition-all duration-300">
+                      <Swords className="h-8 w-8 text-gray-950" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-50 mb-3 text-center relative z-10">
+                    1:1 Debate Arena
+                  </h3>
+                  <p className="text-gray-300 text-center text-sm leading-relaxed mb-4 flex-grow relative z-10">
+                    Challenge opponents, record arguments, and master the art of debate in turn-based combat.
+                  </p>
+                  <div className="flex justify-center mt-auto relative z-10">
+                    <span className="badge-neon font-medium">
+                      PvP Combat
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Debate with Chanakya - Neon Card Design */}
               <div className="h-80 group cursor-pointer" onClick={() => requireAuth ? requireAuth(onChanakyaDebate || onInstantDebate) : (onChanakyaDebate ? onChanakyaDebate() : onInstantDebate())}>
                 <div className="h-full card-neon p-6 hover:card-neon-glow transition-all duration-500 hover:-translate-y-2 flex flex-col relative overflow-hidden">
