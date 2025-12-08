@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,6 +62,7 @@ const StudentDashboard = ({
   isAuthenticated
 }: StudentDashboardProps) => {
   const { user, signOut } = useCustomAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gray-950 relative font-primary">
@@ -96,13 +98,13 @@ const StudentDashboard = ({
                   </div>
                 </div>
               </div>
+              <DropdownMenuItem onClick={() => navigate('/user-profile')} className="rounded-xl hover:bg-gray-800 text-gray-50 transition-colors duration-200 cursor-pointer">
+                <User className="mr-3 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
               <DropdownMenuItem className="rounded-xl hover:bg-gray-800 text-gray-50 transition-colors duration-200">
                 <Settings className="mr-3 h-4 w-4" />
                 <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onProgressTracking} className="rounded-xl hover:bg-gray-800 text-gray-50 transition-colors duration-200">
-                <TrendingUp className="mr-3 h-4 w-4" />
-                <span>Progress Tracking</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => signOut()} className="rounded-xl hover:bg-red-900/50 text-red-400 transition-colors duration-200">
@@ -119,13 +121,13 @@ const StudentDashboard = ({
             <div className="flex items-center space-x-2">
               <Button 
                 className="btn-neon-primary px-6 py-2 text-sm"
-                onClick={() => window.location.href = '/signup'}
+                onClick={() => navigate('/login?mode=register')}
               >
                 Sign Up
               </Button>
               <Button 
                 className="btn-neon-outline px-6 py-2 text-sm"
-                onClick={() => window.location.href = '/login'}
+                onClick={() => navigate('/login')}
               >
                 Login
               </Button>
@@ -382,23 +384,7 @@ const StudentDashboard = ({
                 <p className="text-lg text-gray-300 leading-relaxed max-w-2xl mx-auto">
                   Transform from a hesitant speaker to a confident, articulate force. Your future voice starts now.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                  
-                  {/* 
-                  <Button 
-                    className="btn-neon-primary text-lg px-8 py-3"
-                    onClick={onStartDebate}
-                  >
-                    Start Speaking Coach
-                  </Button>
-                   */}
-                  <Button 
-                    className="btn-neon-secondary text-lg px-8 py-3"
-                    onClick={onDebateLive}
-                  >
-                    Practice Live Debates
-                  </Button>
-                </div>
+                
               </div>
             </div>
           </div>

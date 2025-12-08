@@ -17,6 +17,8 @@ import STT from "./pages/STT";
 import ResetPassword from "./pages/ResetPassword";
 import AuthDebugPanel from "./components/debug/AuthDebugPanel";
 import NotFound from "./pages/NotFound";
+import ProfileSetup from "./components/profile/ProfileSetup";
+import UserProfile from "./components/profile/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +38,8 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/debug" element={<AuthDebugPanel />} />
             <Route path="/stt" element={<STT />} />
+            <Route path="/profile-setup" element={<ProfileSetup />} />
+            <Route path="/user-profile" element={<UserProfile />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

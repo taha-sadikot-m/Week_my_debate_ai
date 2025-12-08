@@ -379,11 +379,19 @@ export class DebateService {
   }
 
   /**
-   * Store debate analysis for a session in localStorage
+   * Helper to validate UUID
+   */
+  private static isValidUUID(uuid: string) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
+  /**
+   * Store debate analysis for a session in database and localStorage
    */
   static async storeDebateAnalysis(input: CreateDebateAnalysisInput): Promise<{ success: boolean; error?: string }> {
     try {
-      // Store analysis in localStorage with session ID as key
+      // Store analysis in localStorage with session ID as key (backup/offline access)
       const storageKey = `debate_analysis_${input.session_id}`;
       const analysisWithTimestamp = {
         ...input.analysis_data,
@@ -393,24 +401,36 @@ export class DebateService {
       
       localStorage.setItem(storageKey, JSON.stringify(analysisWithTimestamp));
       
-      // Update session status in database (but not analysis data)
+      // Check if session_id is a valid UUID before trying to update database
+      if (!this.isValidUUID(input.session_id)) {
+        console.warn('Session ID is not a valid UUID, skipping database update:', input.session_id);
+        return { success: true }; // Return success as we stored in localStorage
+      }
+
+      // Update session status AND analysis data in database
+      // Extract winner if available in analysis data
+      const winner = (input.analysis_data as any).winner || null;
+
       const { error } = await supabase
         .from('debate_sessions')
         .update({ 
           status: 'completed',
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
+          analysis_data: input.analysis_data, // Store the full JSON analysis
+          winner: winner // Store the winner if available
         })
         .eq('id', input.session_id);
 
       if (error) {
-        console.warn('Warning: Could not update session status in database:', error);
-        // Don't fail the analysis storage if DB update fails
+        console.warn('Warning: Could not update session analysis in database:', error);
+        // We still return success if localStorage worked, but log the DB error
+      } else {
+        console.log('Analysis stored in database for session:', input.session_id);
       }
 
-      console.log('Analysis stored in localStorage for session:', input.session_id);
       return { success: true };
     } catch (error) {
-      console.error('Error storing debate analysis in localStorage:', error);
+      console.error('Error storing debate analysis:', error);
       return { success: false, error: 'Failed to store debate analysis' };
     }
   }
@@ -593,6 +613,74 @@ export class DebateService {
       console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
       
       // Return a structured error response that the frontend can handle
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to process debate analysis'
+      };
+    }
+  }
+
+  /**
+   * Process analysis for a human 1:1 debate
+   */
+  static async processHumanDebateAnalysis(
+    debateData: any,
+    n8nWebhookUrl: string
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      // Prepare payload
+      const webhookPayload = {
+        body: {
+          debateData: debateData
+        }
+      };
+
+      console.log('Sending human debate data to N8N webhook:', n8nWebhookUrl);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for longer analysis
+      
+      let analysisData;
+      
+      try {
+        const response = await fetch(n8nWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(webhookPayload),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`N8N webhook failed: ${response.status} ${response.statusText}. Response: ${errorText}`);
+        }
+
+        const responseText = await response.text();
+        analysisData = JSON.parse(responseText);
+        
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
+
+      // Store the analysis if roomId is present
+      if (debateData.roomId) {
+        // Ensure we have a valid UUID for the session ID
+        // If the roomId is not a UUID (e.g. "room_123"), we might need to handle it differently
+        // But assuming standard flow uses UUIDs for sessions
+        await this.storeDebateAnalysis({
+          session_id: debateData.roomId,
+          analysis_data: analysisData
+        });
+      }
+
+      return { success: true, data: analysisData };
+    } catch (error) {
+      console.error('Error processing human debate analysis:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to process debate analysis'

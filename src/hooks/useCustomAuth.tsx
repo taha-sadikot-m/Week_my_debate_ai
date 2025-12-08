@@ -16,6 +16,7 @@ interface AuthContextType {
   verifyEmail: (email: string, code: string) => Promise<AuthResponse>;
   requestPasswordReset: (email: string) => Promise<AuthResponse>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<AuthResponse>;
+  updateProfile: (profileData: any) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
@@ -100,6 +101,18 @@ export const CustomAuthProvider = ({ children }: { children: React.ReactNode }) 
     return await CustomAuthService.resetPassword(email, code, newPassword);
   };
 
+  const updateProfile = async (profileData: any): Promise<AuthResponse> => {
+    if (!user) return { success: false, error: 'User not authenticated' };
+    
+    const response = await CustomAuthService.updateProfile(user.id, profileData);
+    
+    if (response.success && response.user) {
+      setUser(response.user);
+    }
+    
+    return response;
+  };
+
   const logout = async (): Promise<void> => {
     await CustomAuthService.logout();
     setUser(null);
@@ -119,6 +132,7 @@ export const CustomAuthProvider = ({ children }: { children: React.ReactNode }) 
     verifyEmail,
     requestPasswordReset,
     resetPassword,
+    updateProfile,
     logout,
     refreshAuth
   };

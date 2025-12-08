@@ -14,6 +14,12 @@ export interface User {
   user_role: 'student' | 'teacher' | 'admin';
   tokens: number;
   email_verified: boolean;
+  age?: number;
+  gender?: string;
+  country?: string;
+  school?: string;
+  interests?: string[];
+  is_profile_completed?: boolean;
 }
 
 export interface AuthResponse {
@@ -441,6 +447,55 @@ export class CustomAuthService {
       localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionData));
     } catch (error) {
       console.error('Failed to store session data:', error);
+    }
+  }
+
+  /**
+   * Update user profile
+   */
+  static async updateProfile(
+    userId: string,
+    profileData: {
+      fullName?: string;
+      age: number;
+      gender?: string;
+      country: string;
+      school?: string;
+      interests: string[];
+    }
+  ): Promise<AuthResponse> {
+    try {
+      const { data, error } = await supabase.rpc('update_user_profile', {
+        p_user_id: userId,
+        p_full_name: profileData.fullName,
+        p_age: profileData.age,
+        p_gender: profileData.gender,
+        p_country: profileData.country,
+        p_school: profileData.school,
+        p_interests: profileData.interests
+      });
+
+      if (error) throw error;
+
+      const result = data as any;
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+
+      // Update local session if it exists
+      const currentSession = this.getSessionData();
+      if (currentSession && currentSession.user.id === userId) {
+        const updatedUser = { ...currentSession.user, ...result.user };
+        this.setSessionData({
+          ...currentSession,
+          user: updatedUser
+        });
+      }
+
+      return { success: true, user: result.user };
+    } catch (error) {
+      console.error('Profile update error:', error);
+      return { success: false, error: error.message };
     }
   }
 

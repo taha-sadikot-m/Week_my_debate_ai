@@ -4,7 +4,7 @@
  * Routes between login, registration, and forgot password
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CustomLogin from './CustomLogin';
 import CustomRegistration from './CustomRegistration';
 import CustomForgotPassword from './CustomForgotPassword';
@@ -13,10 +13,15 @@ type AuthStep = 'login' | 'register' | 'forgot-password';
 
 interface CustomAuthRouterProps {
   onAuthSuccess: () => void;
+  initialStep?: AuthStep;
 }
 
-const CustomAuthRouter = ({ onAuthSuccess }: CustomAuthRouterProps) => {
-  const [currentStep, setCurrentStep] = useState<AuthStep>('login');
+const CustomAuthRouter = ({ onAuthSuccess, initialStep = 'login' }: CustomAuthRouterProps) => {
+  const [currentStep, setCurrentStep] = useState<AuthStep>(initialStep);
+
+  useEffect(() => {
+    setCurrentStep(initialStep);
+  }, [initialStep]);
 
   console.log('CustomAuthRouter: Current step is', currentStep);
 

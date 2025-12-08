@@ -1,6 +1,6 @@
 
 // @ts-nocheck
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ViewManager from '@/components/ViewManager';
 import { useAppHandlers } from '@/hooks/useAppHandlers';
@@ -29,6 +29,14 @@ interface AuthenticatedAppProps {
 const AuthenticatedApp = ({ isAuthenticated, requireAuth }: AuthenticatedAppProps) => {
   const { user, signOut } = useCustomAuth();
   const navigate = useNavigate();
+  
+  // Check for profile completion
+  useEffect(() => {
+    // Only redirect if explicitly false (to avoid redirecting while loading or if undefined)
+    if (isAuthenticated && user && user.is_profile_completed === false) {
+      navigate('/profile-setup');
+    }
+  }, [isAuthenticated, user, navigate]);
   
   // Use user data from custom auth
   const userRole = (user?.user_role as 'student' | 'teacher') || 'student';

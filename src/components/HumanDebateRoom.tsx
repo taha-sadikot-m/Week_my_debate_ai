@@ -5,6 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   ArrowLeft, 
   Users, 
@@ -40,9 +47,12 @@ import type {
   RoomUser 
 } from '@/types/debate';
 import { createClient } from '@supabase/supabase-js';
+import { DebateService } from '@/services/DebateService';
+import DebateAnalysis from './DebateAnalysis';
 // Add imports for modular video utilities
 import PeerConnection from '@/lib/PeerConnection';
 import MediaDevice from '@/lib/MediaDevice.js';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
 
 const supabaseUrl = 'https://wyxrtubbrxttmnpyrrae.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eHJ0dWJicnh0dG1ucHlycmFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NTY1MjQsImV4cCI6MjA2NzAzMjUyNH0.tF_KUO6do5K6G395hHMXxULTMWdKXMquRmBavw4xL0Y';
@@ -56,6 +66,7 @@ interface HumanDebateRoomProps {
 }
 
 const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
+  const { user } = useCustomAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   
@@ -79,6 +90,8 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [joinRoomId, setJoinRoomId] = useState('');
   const [debateEnded, setDebateEnded] = useState(false);
+  const [analysisData, setAnalysisData] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   // Debate state
   const [speakingTime, setSpeakingTime] = useState(0);
@@ -99,8 +112,38 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
   // Add preRoom state
   const [preRoom, setPreRoom] = useState(true);
   const [createTopic, setCreateTopic] = useState('');
-  // Add roomTopic state
+  const [createMaxTurns, setCreateMaxTurns] = useState('6');
+  
+  // Add roomTopic and settings state
   const [roomTopic, setRoomTopic] = useState('');
+  const [maxTurns, setMaxTurns] = useState(6);
+  
+  // Database session state
+  const [dbSessionId, setDbSessionId] = useState<string | null>(null);
+  const hasSavedRef = useRef(false);
+  const analysisTriggeredRef = useRef(false);
+
+  // Refs for state synchronization to avoid stale closures in event listeners
+  const roomTopicRef = useRef(roomTopic);
+  const maxTurnsRef = useRef(maxTurns);
+  const roomStatusRef = useRef(roomStatus);
+  const messagesRef = useRef(messages);
+
+  useEffect(() => {
+    roomTopicRef.current = roomTopic;
+  }, [roomTopic]);
+
+  useEffect(() => {
+    maxTurnsRef.current = maxTurns;
+  }, [maxTurns]);
+
+  useEffect(() => {
+    roomStatusRef.current = roomStatus;
+  }, [roomStatus]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   const [cameraStates, setCameraStates] = useState<{ [userId: string]: boolean }>({});
 
   // Supabase Realtime Channel state
@@ -335,6 +378,7 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
     channel.on('broadcast', { event: 'sync_state' }, ({ payload }) => {
       if (!payload.targetUserId || payload.targetUserId === currentUser?.id) {
         if (payload.topic !== undefined) setRoomTopic(payload.topic);
+        if (payload.maxTurns !== undefined) setMaxTurns(payload.maxTurns);
         if (payload.roomStatus !== undefined) setRoomStatus(payload.roomStatus);
         if (payload.messages !== undefined) setMessages(payload.messages);
         setIsInitialSync(true);
@@ -344,6 +388,7 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
     // Listen for broadcasted topic/status changes
     channel.on('broadcast', { event: 'update_topic' }, ({ payload }) => {
       setRoomTopic(payload.topic);
+      if (payload.maxTurns) setMaxTurns(payload.maxTurns);
     });
     channel.on('broadcast', { event: 'update_status' }, ({ payload }) => {
       setRoomStatus(payload.roomStatus);
@@ -359,9 +404,10 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
           type: 'broadcast',
           event: 'sync_state',
           payload: {
-            topic: roomTopic,
-            roomStatus,
-            messages,
+            topic: roomTopicRef.current,
+            maxTurns: maxTurnsRef.current,
+            roomStatus: roomStatusRef.current,
+            messages: messagesRef.current,
             targetUserId: payload.userId
           }
         });
@@ -399,9 +445,9 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
   // Broadcast topic change (host only)
   useEffect(() => {
     if (isRoomHost && channelRef.current && channelReady && isInitialSync) {
-      channelRef.current.send({ type: 'broadcast', event: 'update_topic', payload: { topic: roomTopic } });
+      channelRef.current.send({ type: 'broadcast', event: 'update_topic', payload: { topic: roomTopic, maxTurns } });
     }
-  }, [roomTopic, isRoomHost, channelReady, isInitialSync]);
+  }, [roomTopic, maxTurns, isRoomHost, channelReady, isInitialSync]);
 
   // Broadcast status change (host only)
   useEffect(() => {
@@ -412,8 +458,8 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
 
   // Initialize user
   useEffect(() => {
-    const userId = `user_${Date.now()}`;
-    const userName = `User_${Math.floor(Math.random() * 1000)}`;
+    const userId = user?.id || `user_${Date.now()}`;
+    const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || `User_${Math.floor(Math.random() * 1000)}`;
     
     setCurrentUser({
       id: userId,
@@ -423,7 +469,7 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
       joinedAt: new Date().toISOString(),
       lastSeen: new Date().toISOString()
     });
-  }, []);
+  }, [user]);
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -438,6 +484,26 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
       saveDebateToHistory();
     }
   }, [currentRoomId, participants, messages, roomStatus]);
+
+  // Save to database when debate is completed and analysis is available
+  useEffect(() => {
+    if (roomStatus === 'completed' && analysisData && !hasSavedRef.current && user) {
+      saveDebateToDatabase();
+    }
+  }, [roomStatus, analysisData, user]);
+
+  // Auto-end debate after maxTurns
+  useEffect(() => {
+    if (roomStatus === 'active') {
+      const debateTurns = messages.filter(m => m.side === 'FOR' || m.side === 'AGAINST');
+      if (debateTurns.length >= maxTurns) {
+        // Only the host should trigger the end to avoid race conditions/duplicate calls
+        if (isRoomHost) {
+           handleEndDebate();
+        }
+      }
+    }
+  }, [messages, roomStatus, isRoomHost, maxTurns]);
 
   const generateRoomId = () => {
     return `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -470,6 +536,7 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
     setWaitingForOpponent(true);
     setPreRoom(false);
     setRoomTopic(createTopic.trim());
+    setMaxTurns(parseInt(createMaxTurns));
     toast({
       title: 'Room Created',
       description: `Room ID: ${newRoomId}`,
@@ -575,7 +642,11 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
   };
 
   // Update handleEndDebate to broadcast
-  const handleEndDebate = () => {
+  const handleEndDebate = async () => {
+    if (analysisTriggeredRef.current) return;
+    analysisTriggeredRef.current = true;
+
+    console.log('Ending debate and triggering analysis...');
     setRoomStatus('completed');
     setDebateEnded(true);
 
@@ -584,7 +655,7 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
       id: `sys_${Date.now()}`,
       senderId: 'system',
       senderName: 'System',
-      text: 'Debate ended!',
+      text: 'Debate ended! Analyzing results...',
       side: 'OBSERVER',
       timestamp: new Date().toISOString()
     };
@@ -593,13 +664,65 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
 
     toast({
       title: 'Debate Ended',
-      description: 'The debate has been completed',
+      description: 'The debate has been completed. Analyzing performance...',
     });
 
     // Broadcast status and system message
     if (channelRef.current && channelReady) {
       channelRef.current.send({ type: 'broadcast', event: 'update_status', payload: { roomStatus: 'completed' } });
       channelRef.current.send({ type: 'broadcast', event: 'new_message', payload: { message: systemMessage } });
+    }
+
+    // Trigger analysis
+    setIsAnalyzing(true);
+    try {
+      // Use refs to ensure we have the latest data even if closure is stale
+      const currentMessages = messagesRef.current;
+      const currentTopic = roomTopicRef.current || topic;
+
+      const debateData = {
+        roomId: currentRoomId,
+        topic: currentTopic,
+        messages: currentMessages,
+        participants: participants.map(p => ({
+          id: p.id,
+          name: p.name,
+          side: p.side
+        })),
+        duration: 0 // Calculate duration if possible
+      };
+
+      console.log('Sending debate data for analysis:', debateData);
+
+      // Use the new webhook URL
+      const n8nWebhookUrl = 'https://n8n-k6lq.onrender.com/webhook/human-debate-analysis';
+      
+      const result = await DebateService.processHumanDebateAnalysis(debateData, n8nWebhookUrl);
+      
+      if (result.success) {
+        console.log('Analysis successful:', result.data);
+        setAnalysisData(result.data);
+        
+        // Broadcast analysis results to other participants
+        if (channelRef.current && channelReady) {
+          channelRef.current.send({ 
+            type: 'broadcast', 
+            event: 'analysis_complete', 
+            payload: { analysisData: result.data } 
+          });
+        }
+      } else {
+        console.error('Analysis failed:', result.error);
+        toast({
+          title: 'Analysis Failed',
+          description: 'Could not analyze the debate performance.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Analysis error:', error);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -628,6 +751,51 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
       await debateHistoryService.saveDebate(debateRecord);
     } catch (error) {
       console.error('Error saving debate to history:', error);
+    }
+  };
+
+  const saveDebateToDatabase = async () => {
+    if (hasSavedRef.current) return;
+    hasSavedRef.current = true;
+
+    try {
+      console.log('Saving debate to database...');
+      // 1. Create Session
+      const createResult = await DebateService.createDebateSession({
+        topic: roomTopic || topic,
+        topic_type: 'custom',
+        user_position: selectedSide === 'FOR' ? 'for' : 'against',
+        first_speaker: 'user',
+        difficulty: 'medium',
+        debate_type: 'human',
+        metadata: {
+          original_room_id: currentRoomId,
+          opponent_name: participants.find(p => p.id !== currentUser?.id)?.name
+        }
+      }, user?.id);
+
+      if (!createResult.success || !createResult.data) {
+        console.error('Failed to create DB session:', createResult.error);
+        return;
+      }
+
+      const sessionId = createResult.data.id;
+      setDbSessionId(sessionId);
+
+      // 2. Store Analysis
+      await DebateService.storeDebateAnalysis({
+        session_id: sessionId,
+        analysis_data: analysisData
+      });
+      
+      toast({
+        title: 'Debate Saved',
+        description: 'Your debate results have been saved to your history.',
+      });
+
+    } catch (error) {
+      console.error('Error saving debate to database:', error);
+      hasSavedRef.current = false;
     }
   };
 
@@ -717,6 +885,11 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
             >
               {roomStatus === 'active' ? 'Debate Active' : 'Waiting for participants...'}
             </Badge>
+            {roomStatus === 'active' && (
+               <Badge variant="outline" className="ml-2 bg-blue-100 text-blue-800">
+                 Turn {messages.filter(m => m.side === 'FOR' || m.side === 'AGAINST').length}/{maxTurns}
+               </Badge>
+            )}
           </div>
           
           <div className="text-sm text-yellow-600 mb-2">
@@ -1042,10 +1215,16 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
       }
     };
 
+    const handleAnalysisComplete = ({ payload }: any) => {
+      setAnalysisData(payload.analysisData);
+      setIsAnalyzing(false);
+    };
+
     channelRef.current.on('broadcast', { event: 'video-offer' }, handleVideoOffer);
     channelRef.current.on('broadcast', { event: 'video-answer' }, handleVideoAnswer);
     channelRef.current.on('broadcast', { event: 'ice-candidate' }, handleIceCandidate);
     channelRef.current.on('broadcast', { event: 'camera-off' }, handleCameraOff);
+    channelRef.current.on('broadcast', { event: 'analysis_complete' }, handleAnalysisComplete);
 
     return undefined;
   }, [channelReady, currentUser, localStream]);
@@ -1224,6 +1403,104 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
     });
   };
 
+  // Show analysis if available
+  if (analysisData) {
+    // Determine which analysis to show based on user side
+    const userSide = currentUser?.side;
+    const myAnalysis = userSide === 'FOR' ? analysisData.forAnalysis : 
+                       userSide === 'AGAINST' ? analysisData.againstAnalysis : 
+                       null;
+
+    // If observer, show winner and summary
+    if (userSide === 'OBSERVER' || userSide === 'EVALUATOR' || !myAnalysis) {
+       return (
+         <div className="min-h-screen bg-gray-950 p-8 text-white font-primary">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-3xl font-bold mb-6 text-center font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Debate Analysis</h1>
+              <Card className="bg-gray-900/50 border-cyan-500/30 backdrop-blur-md mb-8">
+                <CardHeader>
+                  <CardTitle className="text-center text-4xl text-cyan-400 font-orbitron drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+                    Winner: {analysisData.winner}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-center text-gray-300 text-lg">{analysisData.winningReason}</p>
+                </CardContent>
+              </Card>
+              <div className="flex justify-center">
+                <Button onClick={onExit} className="btn-neon-primary">Exit Debate</Button>
+              </div>
+            </div>
+         </div>
+       );
+    }
+
+    if (myAnalysis) {
+      // Adapt data for DebateAnalysis component
+      const adaptedAnalysis = {
+        overallScore: myAnalysis.overallScore,
+        performanceMetrics: {
+          argumentation: myAnalysis.performanceMetrics.argumentation,
+          clarity: myAnalysis.performanceMetrics.clarity,
+          engagement: myAnalysis.performanceMetrics.rebuttal, // Mapping rebuttal to engagement
+          criticalThinking: myAnalysis.performanceMetrics.persuasion, // Mapping persuasion to criticalThinking
+          communication: { score: (myAnalysis.overallScore), strengths: [], weaknesses: [], improvement: "See specific feedback" }
+        },
+        keyStrengths: myAnalysis.keyStrengths,
+        areasForImprovement: myAnalysis.areasForImprovement,
+        specificFeedback: myAnalysis.specificFeedback,
+        improvementPlan: { 
+          shortTerm: [{ action: "Review feedback", description: "Check specific feedback points", timeframe: "Immediate" }], 
+          mediumTerm: [], 
+          longTerm: [] 
+        },
+        nextSteps: ["Review winner announcement", "Check detailed scores"],
+        motivationalInsights: { 
+          progressHighlights: "Completed a full human debate", 
+          confidenceBuilders: "Engaged in real-time argumentation", 
+          encouragement: "Keep debating to improve your skills!" 
+        }
+      };
+
+      return (
+        <div className="relative">
+          {/* Winner Banner */}
+          <div className="bg-gray-900 border-b border-cyan-500/30 p-4 text-center">
+            <h2 className="text-2xl font-bold text-white font-orbitron">
+              Winner: <span className="text-cyan-400">{analysisData.winner}</span>
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">{analysisData.winningReason}</p>
+          </div>
+          
+          <DebateAnalysis 
+            analysisData={adaptedAnalysis}
+            onBack={onExit}
+            onContinue={onExit}
+            isLoading={false}
+            debateContext={{
+              topic: topic,
+              duration: 0,
+              difficulty: 'Human vs Human'
+            }}
+          />
+        </div>
+      );
+    }
+  }
+
+  // Show loading screen while analyzing
+  if (isAnalyzing) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center font-primary">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-400 mx-auto mb-6 shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
+          <h2 className="text-2xl font-bold text-white mb-3 font-orbitron">Analyzing Debate Performance</h2>
+          <p className="text-cyan-300/80">Our AI is reviewing the debate and determining the winner...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Header bar always visible */}
@@ -1291,8 +1568,23 @@ const HumanDebateRoom = ({ topic, onExit, roomId }: HumanDebateRoomProps) => {
                     placeholder="Enter debate topic..."
                     value={createTopic}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCreateTopic(e.target.value)}
-                    className="mb-2"
+                    className="mb-4"
                   />
+                  
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Number of Turns</label>
+                  <Select value={createMaxTurns} onValueChange={setCreateMaxTurns}>
+                    <SelectTrigger className="mb-4">
+                      <SelectValue placeholder="Select turns" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2 Turns (Quick)</SelectItem>
+                      <SelectItem value="4">4 Turns (Short)</SelectItem>
+                      <SelectItem value="6">6 Turns (Standard)</SelectItem>
+                      <SelectItem value="8">8 Turns (Long)</SelectItem>
+                      <SelectItem value="10">10 Turns (Extended)</SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <Button className="w-full" onClick={handleCreateRoom}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Create Room

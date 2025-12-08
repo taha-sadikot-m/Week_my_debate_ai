@@ -47,31 +47,49 @@ interface DebateDetailViewProps {
 export default function DebateDetailView({ debate, onBack }: DebateDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'chat'>('overview');
   const [messages, setMessages] = useState<DebateMessage[]>([]);
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [winner, setWinner] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadMessages = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
+        // Fetch messages
         const dbMessages = await DebateService.getDebateMessages(debate.id);
-        const formattedMessages = dbMessages.map((msg: DbDebateMessage) => ({
-          id: msg.id,
-          sender: msg.sender,
-          content: msg.content,
-          timestamp: msg.created_at,
-          turn: msg.turn_number
-        }));
-        setMessages(formattedMessages);
+        if (dbMessages.data) {
+          const formattedMessages = dbMessages.data.map((msg: DbDebateMessage) => ({
+            id: msg.id,
+            sender: msg.sender,
+            content: msg.message_text, // Note: DebateMessage type uses message_text
+            timestamp: msg.created_at,
+            turn: msg.turn_number
+          }));
+          setMessages(formattedMessages);
+        }
+
+        // Fetch full session details for analysis
+        const sessionRes = await DebateService.getDebateSession(debate.id);
+        if (sessionRes.success && sessionRes.data) {
+             let analysisData = sessionRes.data.session.analysis_data;
+             // Handle case where analysis_data is wrapped in an array
+             if (Array.isArray(analysisData) && analysisData.length > 0) {
+                 analysisData = analysisData[0];
+             }
+             setAnalysis(analysisData);
+             setWinner(sessionRes.data.session.winner);
+        }
+
       } catch (err) {
-        console.error('Failed to load messages:', err);
-        setError('Failed to load debate messages');
+        console.error('Failed to load debate data:', err);
+        setError('Failed to load debate data');
       } finally {
         setLoading(false);
       }
     };
 
-    loadMessages();
+    loadData();
   }, [debate.id]);
 
   const formatDuration = (seconds: number): string => {
@@ -118,6 +136,52 @@ export default function DebateDetailView({ debate, onBack }: DebateDetailViewPro
       default:
         return sender;
     }
+  };
+
+  const renderFeedback = (feedbackData: any) => {
+    if (!feedbackData) return <p className="text-gray-500 italic">No feedback available.</p>;
+
+    // Handle the new structure
+    if (feedbackData.specificFeedback) {
+      return (
+        <div className="space-y-4 text-sm">
+          {feedbackData.overallScore && (
+             <div className="font-semibold text-gray-900">Overall Score: {feedbackData.overallScore}</div>
+          )}
+          
+          {feedbackData.specificFeedback.opening && (
+            <div>
+              <span className="font-semibold text-gray-800 block">Opening:</span>
+              <p className="text-gray-700 mt-1">{feedbackData.specificFeedback.opening.analysis}</p>
+              <p className="text-gray-600 italic mt-1 pl-2 border-l-2 border-gray-300">Suggestion: {feedbackData.specificFeedback.opening.suggestion}</p>
+            </div>
+          )}
+          
+          {feedbackData.specificFeedback.arguments && (
+            <div>
+              <span className="font-semibold text-gray-800 block">Arguments:</span>
+              <p className="text-gray-700 mt-1">{feedbackData.specificFeedback.arguments.analysis}</p>
+              <p className="text-gray-600 italic mt-1 pl-2 border-l-2 border-gray-300">Suggestion: {feedbackData.specificFeedback.arguments.suggestion}</p>
+            </div>
+          )}
+
+          {feedbackData.specificFeedback.closing && (
+            <div>
+              <span className="font-semibold text-gray-800 block">Closing:</span>
+              <p className="text-gray-700 mt-1">{feedbackData.specificFeedback.closing.analysis}</p>
+              <p className="text-gray-600 italic mt-1 pl-2 border-l-2 border-gray-300">Suggestion: {feedbackData.specificFeedback.closing.suggestion}</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback for simple text
+    if (typeof feedbackData === 'string') {
+        return <div className="text-gray-700 whitespace-pre-wrap text-sm">{feedbackData}</div>;
+    }
+
+    return <div className="text-gray-700 whitespace-pre-wrap text-sm">{JSON.stringify(feedbackData)}</div>;
   };
 
   return (
@@ -277,6 +341,62 @@ export default function DebateDetailView({ debate, onBack }: DebateDetailViewPro
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-8">
+                {/* Analysis Result */}
+                {analysis && (
+                  <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-8 border border-indigo-100">
+                    <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                      <Target className="w-6 h-6 text-indigo-600" />
+                      Debate Analysis
+                    </h2>
+                    
+                    {winner && (
+                      <div className="mb-8 p-6 bg-white rounded-xl shadow-sm border border-indigo-100 flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1">Winner Declared</h3>
+                          <p className="text-gray-600">The AI Judge has analyzed the arguments.</p>
+                        </div>
+                        <div className={`px-6 py-3 rounded-full text-xl font-bold ${
+                          winner === 'FOR' ? 'bg-blue-100 text-blue-700' :
+                          winner === 'AGAINST' ? 'bg-red-100 text-red-700' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {winner === 'FOR' ? 'PRO Side' : winner === 'AGAINST' ? 'CON Side' : 'DRAW'}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-6">
+                      {/* Feedback for Pro Side - Show if user is FOR or position is unknown */}
+                      {(debate.user_position === 'for' || !debate.user_position) && (
+                        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <User className="w-5 h-5 text-blue-500" />
+                            Pro Side Feedback
+                            {debate.user_position === 'for' && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2">You</span>}
+                          </h3>
+                          <div className="space-y-4">
+                            {renderFeedback(analysis.forAnalysis || analysis.feedbackForPro)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Feedback for Con Side - Show if user is AGAINST or position is unknown */}
+                      {(debate.user_position === 'against' || !debate.user_position) && (
+                        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <User className="w-5 h-5 text-red-500" />
+                            Con Side Feedback
+                            {debate.user_position === 'against' && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full ml-2">You</span>}
+                          </h3>
+                          <div className="space-y-4">
+                            {renderFeedback(analysis.againstAnalysis || analysis.feedbackForCon)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Debate Information */}
                 <div className="bg-gray-50 rounded-2xl p-8">
                   <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center gap-3">

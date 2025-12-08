@@ -5,7 +5,7 @@
  */
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCustomAuth } from '@/hooks/useCustomAuth';
 import CustomAuthRouter from './auth/CustomAuthRouter';
 
@@ -16,6 +16,10 @@ interface NewAuthPageProps {
 const NewAuthPage = ({ message }: NewAuthPageProps) => {
   const { user, loading } = useCustomAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  const mode = searchParams.get('mode');
+  const initialStep = (mode === 'register' || mode === 'forgot-password') ? mode : 'login';
 
   useEffect(() => {
     // If user is already authenticated, redirect to main app
@@ -58,7 +62,10 @@ const NewAuthPage = ({ message }: NewAuthPageProps) => {
           )}
         </div>
         
-        <CustomAuthRouter onAuthSuccess={handleAuthSuccess} />
+        <CustomAuthRouter 
+          onAuthSuccess={handleAuthSuccess} 
+          initialStep={initialStep as 'login' | 'register' | 'forgot-password'} 
+        />
       </div>
     </div>
   );

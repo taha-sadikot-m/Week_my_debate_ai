@@ -68,6 +68,9 @@ const DebateAnalysis: React.FC<DebateAnalysisProps> = ({
   // Safely handle data structure - support both old and new formats
   const safeAnalysisData = Array.isArray(analysisData) ? analysisData[0] : analysisData;
   
+  console.log('DebateAnalysis: Received analysisData:', analysisData);
+  console.log('DebateAnalysis: Safe analysisData:', safeAnalysisData);
+  
   // If no analysis data, show error state
   if (!safeAnalysisData) {
     return (
@@ -85,6 +88,64 @@ const DebateAnalysis: React.FC<DebateAnalysisProps> = ({
       </div>
     );
   }
+
+  // Helper to ensure improvement plan exists
+  const getImprovementPlan = (data: any) => {
+    console.log('DebateAnalysis: Checking improvementPlan in data:', data);
+    
+    if (data.improvementPlan) {
+      console.log('DebateAnalysis: Found improvementPlan:', data.improvementPlan);
+      return data.improvementPlan;
+    }
+    
+    // Generate fallback plan from areas for improvement
+    const areas = data.areasForImprovement || [];
+    console.log('DebateAnalysis: No improvementPlan found, generating fallback from areas:', areas);
+    
+    const fallbackPlan = {
+      shortTerm: [
+        {
+          action: "Focus on Key Weaknesses",
+          description: areas[0] || "Review your debate performance to identify areas that need immediate attention.",
+          timeframe: "This Week"
+        },
+        {
+          action: "Practice Core Skills",
+          description: areas[1] || "Work on structuring clear, logical arguments with strong evidence.",
+          timeframe: "1-2 Weeks"
+        }
+      ],
+      mediumTerm: [
+        {
+          action: "Develop Advanced Techniques",
+          description: areas[2] || "Study advanced debate strategies like rebuttal frameworks and cross-examination.",
+          timeframe: "1-2 Months"
+        },
+        {
+          action: "Expand Knowledge Base",
+          description: "Research common debate topics and build a repository of evidence and examples.",
+          timeframe: "2-3 Months"
+        }
+      ],
+      longTerm: [
+        {
+          action: "Achieve Consistent Excellence",
+          description: "Apply learned techniques consistently across different debate formats and topics.",
+          timeframe: "3+ Months"
+        },
+        {
+          action: "Mentor Others",
+          description: "Share your knowledge by helping newer debaters develop their skills.",
+          timeframe: "Ongoing"
+        }
+      ]
+    };
+    
+    console.log('DebateAnalysis: Generated fallback plan:', fallbackPlan);
+    return fallbackPlan;
+  };
+
+  const improvementPlan = getImprovementPlan(safeAnalysisData);
 
   const getScoreColor = (score: number) => {
     if (score >= 85) return 'text-emerald-400';
@@ -430,7 +491,7 @@ const DebateAnalysis: React.FC<DebateAnalysisProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {(safeAnalysisData.improvementPlan?.shortTerm || []).map((item: any, index: number) => 
+                    {(improvementPlan.shortTerm || []).map((item: any, index: number) => 
                       renderImprovementItem(item, index)
                     )}
                   </div>
@@ -447,7 +508,7 @@ const DebateAnalysis: React.FC<DebateAnalysisProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {(safeAnalysisData.improvementPlan?.mediumTerm || []).map((item: any, index: number) => 
+                    {(improvementPlan.mediumTerm || []).map((item: any, index: number) => 
                       renderImprovementItem(item, index)
                     )}
                   </div>
@@ -464,7 +525,7 @@ const DebateAnalysis: React.FC<DebateAnalysisProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {(safeAnalysisData.improvementPlan?.longTerm || []).map((item: any, index: number) => 
+                    {(improvementPlan.longTerm || []).map((item: any, index: number) => 
                       renderImprovementItem(item, index)
                     )}
                   </div>
@@ -482,7 +543,14 @@ const DebateAnalysis: React.FC<DebateAnalysisProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {(safeAnalysisData.nextSteps || []).map((step: string, index: number) => (
+                  {(safeAnalysisData.nextSteps || improvementPlan.shortTerm?.map((item: any) => 
+                    typeof item === 'string' ? item : `${item.action}: ${item.description}`
+                  ) || [
+                    "Review your debate performance and identify key moments",
+                    "Focus on the areas for improvement highlighted in the analysis",
+                    "Practice your weakest skills in a low-pressure environment",
+                    "Set specific goals for your next debate based on this feedback"
+                  ]).map((step: string, index: number) => (
                     <div key={index} className="flex items-start space-x-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
                       <div className="w-6 h-6 bg-fuchsia-500/20 border border-fuchsia-400/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-bold text-fuchsia-400">{index + 1}</span>

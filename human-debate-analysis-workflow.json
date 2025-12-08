@@ -1,0 +1,237 @@
+{
+  "name": "Human Debate Analysis Workflow - Gemini 2.0 Flash",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "human-debate-analysis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "human-debate-webhook",
+      "name": "Webhook - Human Debate Analysis",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "human-debate-analysis-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "validation-001",
+              "leftValue": "={{ $json.debateData || ($json.body && $json.body.debateData) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists"
+              }
+            },
+            {
+              "id": "validation-002", 
+              "leftValue": "={{ ($json.debateData || ($json.body && $json.body.debateData)).messages }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "validate-input",
+      "name": "Validate Input Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and prepare debate data for analysis\nconst root = $input.first().json;\nconst debateData = root.debateData || (root.body && root.body.debateData);\nconst messages = debateData.messages || [];\nconst config = debateData.config || {};\nconst participants = debateData.participants || [];\n\n// Identify participants\nconst forParticipant = participants.find(p => p.side === 'FOR') || { name: 'Proponent', id: 'for_user' };\nconst againstParticipant = participants.find(p => p.side === 'AGAINST') || { name: 'Opponent', id: 'against_user' };\n\n// Separate messages\nconst forMessages = messages.filter(msg => msg.side === 'FOR');\nconst againstMessages = messages.filter(msg => msg.side === 'AGAINST');\n\n// Calculate basic metrics\nconst totalMessages = messages.length;\nconst forMessageCount = forMessages.length;\nconst againstMessageCount = againstMessages.length;\n\n// Prepare conversation transcript\nconst conversationTranscript = messages\n  .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))\n  .map(msg => {\n    const speakerName = msg.senderName || (msg.side === 'FOR' ? forParticipant.name : againstParticipant.name);\n    const side = msg.side || 'UNKNOWN';\n    const timestamp = new Date(msg.timestamp).toISOString();\n    return `[${timestamp}] ${speakerName} (${side}): ${msg.text}`;\n  })\n  .join('\\n\\n');\n\n// Extract debate context\nconst debateContext = {\n  topic: config.topic || 'Unknown Topic',\n  forSpeaker: forParticipant.name,\n  againstSpeaker: againstParticipant.name,\n  duration: debateData.duration || 0,\n  roomId: debateData.roomId || null\n};\n\n// Prepare structured data for Gemini analysis\nconst analysisInput = {\n  conversationTranscript,\n  debateContext,\n  metrics: {\n    totalMessages,\n    forMessageCount,\n    againstMessageCount,\n    conversationLength: conversationTranscript.length\n  },\n  participants: {\n    for: forParticipant,\n    against: againstParticipant\n  },\n  rawData: debateData\n};\n\nreturn [{ json: analysisInput }];"
+      },
+      "id": "process-data",
+      "name": "Process Debate Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyBoUtmHN_zVYD1o2ro6idslSTxQ5y5Rpd8"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  {\n    \"contents\": [\n      {\n        \"parts\": [\n          {\n            \"text\": \"You are an expert debate judge and communication analyst. Analyze this 1:1 debate performance comprehensively and provide detailed, actionable feedback for BOTH participants. You must also declare a winner.\\n\\n**DEBATE CONTEXT:**\\nTopic: \" + $json.debateContext.topic + \"\\nProponent (FOR): \" + $json.debateContext.forSpeaker + \"\\nOpponent (AGAINST): \" + $json.debateContext.againstSpeaker + \"\\n\\n**FULL CONVERSATION TRANSCRIPT:**\\n\" + $json.conversationTranscript + \"\\n\\n**ANALYSIS REQUIREMENTS:**\\nReturn ONLY a valid JSON object with this exact structure:\\n\\n{\\n  \\\"winner\\\": \\\"FOR\\\" | \\\"AGAINST\\\" | \\\"DRAW\\\",\\n  \\\"winningReason\\\": \\\"Brief explanation of why this side won\\\",\\n  \\\"forAnalysis\\\": {\\n    \\\"overallScore\\\": 85,\\n    \\\"performanceMetrics\\\": {\\n      \\\"argumentation\\\": { \\\"score\\\": 80, \\\"strengths\\\": [], \\\"weaknesses\\\": [], \\\"improvement\\\": \\\"...\\\" },\\n      \\\"clarity\\\": { \\\"score\\\": 80, \\\"strengths\\\": [], \\\"weaknesses\\\": [], \\\"improvement\\\": \\\"...\\\" },\\n      \\\"rebuttal\\\": { \\\"score\\\": 80, \\\"strengths\\\": [], \\\"weaknesses\\\": [], \\\"improvement\\\": \\\"...\\\" },\\n      \\\"persuasion\\\": { \\\"score\\\": 80, \\\"strengths\\\": [], \\\"weaknesses\\\": [], \\\"improvement\\\": \\\"...\\\" }\\n    },\\n    \\\"keyStrengths\\\": [],\\n    \\\"areasForImprovement\\\": [],\\n    \\\"specificFeedback\\\": {\\n      \\\"opening\\\": { \\\"analysis\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\" },\\n      \\\"arguments\\\": { \\\"analysis\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\" },\\n      \\\"closing\\\": { \\\"analysis\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\" }\\n    }\\n  },\\n  \\\"againstAnalysis\\\": {\\n    \\\"overallScore\\\": 85,\\n    \\\"performanceMetrics\\\": {\\n      \\\"argumentation\\\": { \\\"score\\\": 80, \\\"strengths\\\": [], \\\"weaknesses\\\": [], \\\"improvement\\\": \\\"...\\\" },\\n      \\\"clarity\\\": { \\\"score\\\": 80, \\\"strengths\\\": [], \\\"weaknesses\\\": [], \\\"improvement\\\": \\\"...\\\" },\\n      \\\"rebuttal\\\": { \\\"score\\\": 80, \\\"strengths\\\": [], \\\"weaknesses\\\": [], \\\"improvement\\\": \\\"...\\\" },\\n      \\\"persuasion\\\": { \\\"score\\\": 80, \\\"strengths\\\": [], \\\"weaknesses\\\": [], \\\"improvement\\\": \\\"...\\\" }\\n    },\\n    \\\"keyStrengths\\\": [],\\n    \\\"areasForImprovement\\\": [],\\n    \\\"specificFeedback\\\": {\\n      \\\"opening\\\": { \\\"analysis\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\" },\\n      \\\"arguments\\\": { \\\"analysis\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\" },\\n      \\\"closing\\\": { \\\"analysis\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\" }\\n    }\\n  }\\n}\\n\\nAnalyze the conversation and return only the JSON object.\"\n          }\n        ],\n        \"role\": \"user\"\n      }\n    ],\n    \"generationConfig\": {\n      \"temperature\": 0.3,\n      \"topK\": 40,\n      \"topP\": 0.9,\n      \"maxOutputTokens\": 8000,\n      \"candidateCount\": 1\n    }\n  }\n}}",
+        "options": {}
+      },
+      "id": "gemini-request",
+      "name": "Gemini HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Analysis Result Processor for Direct Gemini HTTP API\nconst requestStartTime = Date.now();\n\ntry {\n  const data = $input.first().json || $input.first();\n  \n  // Extract Gemini response from HTTP API format\n  const geminiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  \n  let analysisResult;\n  \n  if (geminiText) {\n    try {\n      // Try to parse the JSON response directly\n      analysisResult = JSON.parse(geminiText.trim());\n      \n      // Validate that we have the required structure\n      if (!analysisResult.winner || !analysisResult.forAnalysis || !analysisResult.againstAnalysis) {\n        throw new Error('Invalid analysis structure');\n      }\n      \n    } catch (parseError) {\n      console.error('Failed to parse Gemini JSON response:', parseError);\n      \n      // Try to extract JSON from markdown code blocks if present\n      const jsonMatch = geminiText.match(/```json\\n([\\s\\S]*?)\\n```/) || \n                       geminiText.match(/\\{[\\s\\S]*\\}/);\n      \n      if (jsonMatch) {\n        try {\n          const jsonString = jsonMatch[1] || jsonMatch[0];\n          analysisResult = JSON.parse(jsonString);\n        } catch (secondParseError) {\n          throw new Error('Could not parse extracted JSON');\n        }\n      } else {\n        throw new Error('No valid JSON found in response');\n      }\n    }\n  } else {\n    throw new Error('No response text from Gemini');\n  }\n  \n} catch (error) {\n  console.error('Failed to process Gemini response:', error);\n  \n  // Fallback analysis structure\n  analysisResult = {\n    winner: \"DRAW\",\n    winningReason: \"Analysis unavailable due to technical error.\",\n    forAnalysis: {\n      overallScore: 70,\n      performanceMetrics: { argumentation: { score: 70, strengths: [], weaknesses: [], improvement: \"\" } },\n      keyStrengths: [],\n      areasForImprovement: [],\n      specificFeedback: {}\n    },\n    againstAnalysis: {\n      overallScore: 70,\n      performanceMetrics: { argumentation: { score: 70, strengths: [], weaknesses: [], improvement: \"\" } },\n      keyStrengths: [],\n      areasForImprovement: [],\n      specificFeedback: {}\n    },\n    metadata: {\n      error: error.message,\n      fallbackUsed: true\n    }\n  };\n}\n\n// Add comprehensive metadata\nanalysisResult.metadata = {\n  ...analysisResult.metadata,\n  analysisDate: new Date().toISOString(),\n  model: 'gemini-2.0-flash-exp',\n  version: '2.0',\n  processingTime: Date.now() - requestStartTime,\n  responseSource: 'direct-http-api'\n};\n\nreturn [{ json: analysisResult }];"
+      },
+      "id": "process-result",
+      "name": "Process Analysis Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin", 
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization"
+              }
+            ]
+          }
+        }
+      },
+      "id": "return-result",
+      "name": "Return Analysis Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Invalid input data\", \"message\": \"Missing required debate data or messages\", \"required\": [\"debateData\", \"debateData.messages\"] } }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "return-error",
+      "name": "Return Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 500]
+    }
+  ],
+  "connections": {
+    "Webhook - Human Debate Analysis": {
+      "main": [
+        [
+          {
+            "node": "Validate Input Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input Data": {
+      "main": [
+        [
+          {
+            "node": "Process Debate Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Debate Data": {
+      "main": [
+        [
+          {
+            "node": "Gemini HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Process Analysis Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Analysis Result": {
+      "main": [
+        [
+          {
+            "node": "Return Analysis Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-22T00:00:00.000Z",
+  "versionId": "1"
+}

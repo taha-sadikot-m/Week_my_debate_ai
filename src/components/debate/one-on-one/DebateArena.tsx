@@ -9,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useSpeechToTextAPI } from '@/hooks/useSpeechToTextAPI';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { useCustomAuth } from '@/hooks/useCustomAuth';
-import { DUMMY_ANALYSIS_DATA } from '../../../data/dummyAnalysis';
 
 interface DebateArenaProps {
   debateId: string;
@@ -215,12 +214,116 @@ const DebateArena = ({ debateId, onBack, onViewAnalysis }: DebateArenaProps) => 
       // Manually refresh data since Realtime might be blocked by RLS/Custom Auth
       console.log('DebateArena: Manually refreshing data after submission...');
       await fetchDebateData();
+
+      // Check if debate is complete and trigger analysis
+      // Assuming total_turns represents rounds, so total individual turns is total_turns * 2
+      // If total_turns represents actual turns, then just total_turns
+      // Based on UI "Round X / Y", Y seems to be total rounds.
+      // Let's assume total_turns is ROUNDS for now based on standard debate formats.
+      // If nextTurnNumber is the last turn (e.g. 6 for 3 rounds)
+      const maxTurns = debate.total_turns * 2; 
+      
+      if (nextTurnNumber >= maxTurns) {
+        console.log('DebateArena: Debate finished, triggering analysis...');
+        await triggerAnalysis();
+      }
       
     } catch (error: any) {
       console.error('Error saving turn:', error);
       toast({ title: 'Error', description: error.message || 'Failed to save turn', variant: 'destructive' });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const triggerAnalysis = async () => {
+    try {
+      toast({ title: 'Analyzing', description: 'Generating debate analysis...' });
+      
+      // Fetch latest turns to ensure we have the full transcript
+      const { data: allTurns, error: turnsError } = await supabase
+        .rpc('get_debate_turns', { p_debate_id: debateId });
+      
+      if (turnsError || !allTurns) {
+        console.error('DebateArena: Failed to fetch turns for analysis');
+        return;
+      }
+
+      const messages = allTurns.map((t: any) => ({
+        id: t.id,
+        senderName: t.speaker_name,
+        text: t.transcript,
+        side: t.speaker_id === debate.challenger_id ? 'FOR' : 'AGAINST',
+        timestamp: t.created_at
+      }));
+
+      const debateData = {
+        roomId: debateId,
+        topic: debate.topic,
+        messages: messages,
+        participants: [
+          { id: debate.challenger_id, name: debate.challenger_name, side: 'FOR' },
+          { id: debate.opponent_id, name: debate.opponent_name, side: 'AGAINST' }
+        ]
+      };
+
+      const n8nWebhookUrl = 'https://n8n-k6lq.onrender.com/webhook/human-debate-analysis';
+      
+      const response = await fetch(n8nWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ body: { debateData } })
+      });
+      
+      if (!response.ok) throw new Error('Analysis webhook failed');
+      
+      const analysisResult = await response.json();
+      console.log('DebateArena: Analysis result:', analysisResult);
+
+      // Handle array response from n8n
+      const finalAnalysis = Array.isArray(analysisResult) ? analysisResult[0] : analysisResult;
+
+      // Determine winner ID
+      let winnerId = null;
+      if (finalAnalysis.winner === 'FOR') winnerId = debate.challenger_id;
+      else if (finalAnalysis.winner === 'AGAINST') winnerId = debate.opponent_id;
+
+      // Use RPC to update both tables securely
+      console.log('DebateArena: Saving analysis via RPC...', { debateId, userId, winnerId });
+      
+      const { data: rpcData, error: rpcError } = await supabase.rpc('update_debate_analysis', {
+        p_debate_id: debateId,
+        p_user_id: userId,
+        p_analysis_data: finalAnalysis,
+        p_winner_id: winnerId
+      });
+
+      if (rpcError) {
+        console.error('DebateArena: RPC Error updating analysis:', rpcError);
+        // Fallback to direct update if RPC fails (though RPC is preferred)
+        console.log('DebateArena: Attempting fallback direct update...');
+        
+        const { error: updateError } = await supabase
+            .from('debates')
+            .update({ 
+                analysis_data: finalAnalysis,
+                winner_id: winnerId,
+                status: 'completed'
+            })
+            .eq('id', debateId);
+
+        if (updateError) console.error('DebateArena: Fallback update failed', updateError);
+        else console.log('DebateArena: Fallback update success');
+        
+      } else {
+        console.log('DebateArena: Analysis saved via RPC:', rpcData);
+        toast({ title: 'Analysis Complete', description: 'Debate analysis has been generated.' });
+        await fetchDebateData(); // Refresh UI to show winner
+      }
+
+    } catch (err) {
+      console.error('DebateArena: Analysis error', err);
+      toast({ title: 'Analysis Failed', description: 'Could not generate analysis.', variant: 'destructive' });
     }
   };
 
@@ -232,7 +335,12 @@ const DebateArena = ({ debateId, onBack, onViewAnalysis }: DebateArenaProps) => 
     (debate.current_turn % 2 !== 0 && !isChallenger)   // Opponent follows (turn 1, 3, 5...)
   );
   const isCompleted = debate.status === 'completed';
-  const winnerName = debate.winner_id === debate.challenger_id ? debate.challenger?.full_name : debate.opponent?.full_name;
+  
+  let winnerName = 'Draw';
+  if (debate.winner_id) {
+    if (debate.winner_id === debate.challenger_id) winnerName = debate.challenger?.full_name;
+    else if (debate.winner_id === debate.opponent_id) winnerName = debate.opponent?.full_name;
+  }
 
   return (
     <div className="space-y-6">
@@ -250,19 +358,37 @@ const DebateArena = ({ debateId, onBack, onViewAnalysis }: DebateArenaProps) => 
             </div>
             {isCompleted && (
               <div className="text-right flex flex-col items-end gap-2">
-                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50 px-4 py-2 text-lg">
+                <Badge className={`px-4 py-2 text-lg ${winnerName === 'Draw' ? 'bg-gray-500/20 text-gray-400 border-gray-500/50' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50'}`}>
                   <Trophy className="w-4 h-4 mr-2" />
-                  Winner: {winnerName}
+                  {winnerName === 'Draw' ? 'Result: Draw' : `Winner: ${winnerName}`}
                 </Badge>
-                {onViewAnalysis && (
+                {onViewAnalysis && debate.analysis_data && (
                   <Button 
                     size="sm" 
                     className="btn-neon-secondary" 
-                    onClick={() => onViewAnalysis(debate.analysis_data || DUMMY_ANALYSIS_DATA, { 
-                      topic: debate.topic, 
-                      duration: 0, 
-                      difficulty: 'Medium' 
-                    })}
+                    onClick={() => {
+                      // Extract the correct analysis based on user role
+                      let userAnalysis = debate.analysis_data;
+                      const isChallenger = debate.challenger_id === userId;
+                      
+                      // Check if we have the nested structure from n8n (forAnalysis/againstAnalysis)
+                      if (debate.analysis_data.forAnalysis || debate.analysis_data.againstAnalysis) {
+                        if (isChallenger) {
+                          userAnalysis = debate.analysis_data.forAnalysis || debate.analysis_data.feedbackForPro;
+                        } else {
+                          userAnalysis = debate.analysis_data.againstAnalysis || debate.analysis_data.feedbackForCon;
+                        }
+                      }
+                      
+                      // If we still don't have valid analysis data (e.g. it's null), fallback to the whole object
+                      if (!userAnalysis) userAnalysis = debate.analysis_data;
+
+                      onViewAnalysis(userAnalysis, { 
+                        topic: debate.topic, 
+                        duration: 0, 
+                        difficulty: 'Medium' 
+                      });
+                    }}
                   >
                     <BarChart3 className="w-4 h-4 mr-1" /> View Analysis
                   </Button>

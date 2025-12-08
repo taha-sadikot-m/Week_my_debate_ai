@@ -26,7 +26,7 @@
           "conditions": [
             {
               "id": "validation-001",
-              "leftValue": "={{ $json.debateData }}",
+              "leftValue": "={{ $json.debateData || ($json.body && $json.body.debateData) }}",
               "rightValue": "",
               "operator": {
                 "type": "object",
@@ -35,7 +35,7 @@
             },
             {
               "id": "validation-002", 
-              "leftValue": "={{ $json.debateData.messages }}",
+              "leftValue": "={{ ($json.debateData || ($json.body && $json.body.debateData)).messages }}",
               "rightValue": "",
               "operator": {
                 "type": "array",
@@ -54,7 +54,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract and prepare debate data for analysis\nconst debateData = $input.first().json.debateData;\nconst messages = debateData.messages || [];\nconst config = debateData.config || {};\n\n// Separate user and AI messages\nconst userMessages = messages.filter(msg => msg.type === 'user');\nconst aiMessages = messages.filter(msg => msg.type === 'deepseek-ai');\n\n// Calculate basic metrics\nconst totalMessages = messages.length;\nconst userMessageCount = userMessages.length;\nconst aiMessageCount = aiMessages.length;\nconst avgUserMessageLength = userMessages.length > 0 ? \n  userMessages.reduce((sum, msg) => sum + msg.text.length, 0) / userMessages.length : 0;\n\n// Prepare conversation transcript\nconst conversationTranscript = messages\n  .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))\n  .map(msg => {\n    const speaker = msg.type === 'user' ? 'User' : 'Chanakya AI';\n    const timestamp = new Date(msg.timestamp).toISOString();\n    return `[${timestamp}] ${speaker}: ${msg.text}`;\n  })\n  .join('\\n\\n');\n\n// Extract debate context\nconst debateContext = {\n  topic: config.topic || 'Unknown Topic',\n  userPosition: config.userPosition || 'Unknown',\n  firstSpeaker: config.firstSpeaker || 'Unknown',\n  difficulty: config.difficulty || 'medium',\n  topicType: config.topicType || 'custom',\n  duration: debateData.duration || 0,\n  sessionId: debateData.sessionId || null\n};\n\n// Prepare structured data for Gemini analysis\nconst analysisInput = {\n  conversationTranscript,\n  debateContext,\n  metrics: {\n    totalMessages,\n    userMessageCount,\n    aiMessageCount,\n    avgUserMessageLength,\n    conversationLength: conversationTranscript.length\n  },\n  userMessages: userMessages.map(msg => ({\n    text: msg.text,\n    timestamp: msg.timestamp,\n    confidence: msg.confidence || 0,\n    length: msg.text.length\n  })),\n  rawData: debateData\n};\n\nreturn [{ json: analysisInput }];"
+        "jsCode": "// Extract and prepare debate data for analysis\nconst root = $input.first().json;\nconst debateData = root.debateData || (root.body && root.body.debateData);\nconst messages = debateData.messages || [];\nconst config = debateData.config || {};\n\n// Separate user and AI messages\nconst userMessages = messages.filter(msg => msg.type === 'user');\nconst aiMessages = messages.filter(msg => msg.type === 'deepseek-ai');\n\n// Calculate basic metrics\nconst totalMessages = messages.length;\nconst userMessageCount = userMessages.length;\nconst aiMessageCount = aiMessages.length;\nconst avgUserMessageLength = userMessages.length > 0 ? \n  userMessages.reduce((sum, msg) => sum + msg.text.length, 0) / userMessages.length : 0;\n\n// Prepare conversation transcript\nconst conversationTranscript = messages\n  .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))\n  .map(msg => {\n    const speaker = msg.type === 'user' ? 'User' : 'Chanakya AI';\n    const timestamp = new Date(msg.timestamp).toISOString();\n    return `[${timestamp}] ${speaker}: ${msg.text}`;\n  })\n  .join('\\n\\n');\n\n// Extract debate context\nconst debateContext = {\n  topic: config.topic || 'Unknown Topic',\n  userPosition: config.userPosition || 'Unknown',\n  firstSpeaker: config.firstSpeaker || 'Unknown',\n  difficulty: config.difficulty || 'medium',\n  topicType: config.topicType || 'custom',\n  duration: debateData.duration || 0,\n  sessionId: debateData.sessionId || null\n};\n\n// Prepare structured data for Gemini analysis\nconst analysisInput = {\n  conversationTranscript,\n  debateContext,\n  metrics: {\n    totalMessages,\n    userMessageCount,\n    aiMessageCount,\n    avgUserMessageLength,\n    conversationLength: conversationTranscript.length\n  },\n  userMessages: userMessages.map(msg => ({\n    text: msg.text,\n    timestamp: msg.timestamp,\n    confidence: msg.confidence || 0,\n    length: msg.text.length\n  })),\n  rawData: debateData\n};\n\nreturn [{ json: analysisInput }];"
       },
       "id": "f48b39b0-82b5-4bfb-9ed5-1234567890ad",
       "name": "Process Debate Data",
