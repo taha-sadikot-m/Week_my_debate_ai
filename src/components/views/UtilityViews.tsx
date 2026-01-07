@@ -20,7 +20,6 @@ import InstantDebateRoom from '@/components/InstantDebateRoom';
 import ChanakyaDebateSetup from '@/components/ChanakyaDebateSetup';
 import ChanakyaDebateRoom from '@/components/ChanakyaDebateRoom';
 import AICoach from '@/components/AICoach';
-import EventRegistrationModal from '@/components/EventRegistrationModal';
 import { ErrorBoundary } from '../ErrorBoundary';
 import OneOnOneDebateHub from '@/components/debate/one-on-one/OneOnOneDebateHub';
 import ProgressTracking from '@/components/ProgressTracking';
@@ -65,89 +64,115 @@ interface UtilityViewsProps {
 }
 
 const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, instantDebateConfig, chanakyaDebateConfig, handlers }: UtilityViewsProps) => {
-  // Registration modal state
-  const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
-  const [selectedEventForRegistration, setSelectedEventForRegistration] = useState<any>(null);
-
   // Event data
   const events = [
     {
       id: 1,
-      title: "sym AI MUN",
+      title: "SYM MUN",
       emoji: "🤖",
-      shortDesc: "AI-powered Model United Nations simulation",
-      date: "December 15-17, 2025",
-      format: "Virtual + AI Moderated",
-      participants: "Open to All Levels",
-      status: "Upcoming",
+      shortDesc: "World's First AI-Powered Model United Nations",
+      partner: "In association with Career Launcher",
+      date: "Coming Soon",
+      format: "Hybrid Event",
+      participants: "Open to All",
+      status: "Registration Open",
       statusColor: "green",
+      price: 1800,
       theme: "from-blue-50 via-indigo-50 to-white",
       gradientColor: "from-blue-500 to-indigo-600",
       iconBg: "from-blue-500 to-indigo-600",
       badges: [
-        { text: "Upcoming", color: "bg-green-100 text-green-800" },
-        { text: "AI Powered", color: "bg-blue-100 text-blue-800" }
+        { text: "UNSC", color: "bg-blue-100 text-blue-800" },
+        { text: "WHO", color: "bg-green-100 text-green-800" },
+        { text: "Free Training", color: "bg-purple-100 text-purple-800" }
       ],
-      fullDescription: "Experience the future of Model United Nations with AI-powered simulations and intelligent debate assistance. This revolutionary event combines traditional diplomatic training with cutting-edge artificial intelligence to create an immersive learning experience.",
-      features: [
-        "AI-powered debate moderation",
-        "Real-time argument analysis",
-        "Virtual diplomatic environment",
-        "Interactive policy simulations",
-        "Global participant network"
-      ],
-      schedule: [
-        { time: "Dec 15 - 10:00 AM", event: "Opening Ceremony & Registration" },
-        { time: "Dec 15 - 2:00 PM", event: "Committee Sessions Begin" },
-        { time: "Dec 16 - 9:00 AM", event: "Crisis Committees" },
-        { time: "Dec 17 - 3:00 PM", event: "Closing Ceremony & Awards" }
-      ],
-      prizes: "Certificates and AI Learning Credits",
-      registrationFee: "₹200",
-      contact: "symaimun@debate.ai"
-    },
-    {
-      id: 2,
-      title: "Eswari inter MUN 2025",
-      emoji: "🏆",
-      shortDesc: "Prestigious inter-college Model United Nations conference",
-      date: "January 20-22, 2025",
-      venue: "Eswari Engineering College",
-      participants: "College Students Only",
-      prizes: "₹50,000 Prize Pool",
-      status: "Registration Open",
-      statusColor: "orange",
-      theme: "from-purple-50 via-pink-50 to-white",
-      gradientColor: "from-purple-500 to-pink-600",
-      iconBg: "from-purple-500 to-pink-600",
-      badges: [
-        { text: "Registration Open", color: "bg-orange-100 text-orange-800" },
-        { text: "Inter-College", color: "bg-purple-100 text-purple-800" }
-      ],
-      fullDescription: "Join the most prestigious inter-college Model United Nations conference in South India. This three-day event brings together the brightest minds from engineering colleges across the region for intense diplomatic negotiations and policy debates.",
-      features: [
-        "6 specialized committees",
-        "Expert panel discussions",
-        "Networking opportunities",
-        "Professional development workshops",
-        "Industry mentorship sessions"
-      ],
-      schedule: [
-        { time: "Jan 20 - 9:00 AM", event: "Registration & Welcome" },
-        { time: "Jan 20 - 11:00 AM", event: "Committee Sessions I" },
-        { time: "Jan 21 - 9:00 AM", event: "Crisis Simulation" },
-        { time: "Jan 22 - 4:00 PM", event: "Award Ceremony" }
+      fullDescription: "Experience the revolutionary SYM MUN - the world's first AI-powered Model United Nations conference. Combining traditional diplomatic training with cutting-edge AI technology to provide unprecedented learning opportunities.",
+      whyAiPowered: [
+        {
+          title: "Live Assistance During Prep",
+          description: "Get AI support for research, speeches, and POIs in real-time",
+          icon: "🎯"
+        },
+        {
+          title: "Performance Insights",
+          description: "Receive detailed analysis on confidence, structure, and diplomacy",
+          icon: "📊"
+        },
+        {
+          title: "Faster Learning",
+          description: "Beginners learn faster, experienced delegates gain competitive edge",
+          icon: "⚡"
+        }
       ],
       committees: [
-        "UN Security Council",
-        "WHO Emergency Session",
-        "G20 Economic Summit",
-        "Climate Action Committee",
-        "Technology & Innovation Council",
-        "Youth Development Forum"
+        {
+          name: "UNSC",
+          fullName: "United Nations Security Council",
+          description: "Crisis diplomacy, real-time negotiations, power politics.",
+          icon: "🌐"
+        },
+        {
+          name: "WHO",
+          fullName: "World Health Organization",
+          description: "Public health, outbreak response, policy + collaboration.",
+          icon: "🏥"
+        }
       ],
-      registrationFee: "₹200",
-      contact: "munregistration@eswari.edu.in"
+      freeTraining: {
+        title: "Free Training Program",
+        subtitle: "Beginner to Pro",
+        features: [
+          "MUN rules + procedure",
+          "Country research + position paper support",
+          "Speech writing techniques",
+          "Mock committee practice sessions"
+        ]
+      },
+      typeformFields: [
+        "Full Name",
+        "Phone (WhatsApp)",
+        "Email",
+        "School/College/Organisation",
+        "City",
+        "Grade/Year (optional)",
+        "Committee Preference: UNSC / WHO / Any",
+        "Experience Level: Beginner / Intermediate / Advanced",
+        "Have you attended MUN before? Yes/No",
+        "Consent: I agree to receive event updates from SYM"
+      ],
+      faqs: [
+        {
+          question: "Who can participate?",
+          answer: "SYM MUN is open to students of all levels - from high school to college. Whether you're a complete beginner or an experienced delegate, you're welcome!"
+        },
+        {
+          question: "Do I need experience?",
+          answer: "No prior MUN experience is required. We provide comprehensive free training covering everything from basics to advanced techniques."
+        },
+        {
+          question: "Is training really free?",
+          answer: "Yes! All registered participants get access to our complete training program including orientation, procedure training, research support, and mock sessions - completely free."
+        },
+        {
+          question: "How do I get my country/allotment?",
+          answer: "After successful registration, you'll receive your country allotment and committee details via email and WhatsApp within 48 hours."
+        }
+      ],
+      features: [
+        "AI-powered debate assistance",
+        "Real-time performance analytics",
+        "Professional diplomatic training",
+        "Interactive committee simulations",
+        "Certificate of participation"
+      ],
+      schedule: [
+        { time: "TBA", event: "Opening Ceremony & Registration" },
+        { time: "TBA", event: "Committee Sessions Begin" },
+        { time: "TBA", event: "Crisis Committees" },
+        { time: "TBA", event: "Closing Ceremony & Awards" }
+      ],
+      registrationFee: "₹1800",
+      contact: "contact@speakyourmind.in"
     }
   ];
 
@@ -220,7 +245,7 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
                   Join our vibrant community of debaters in these exciting events
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 gap-8 max-w-2xl mx-auto">
                 {events.map((event) => (
                   <div key={event.id} className="card-neon group hover:shadow-neon transition-all duration-500 cursor-pointer hover:scale-[1.02]">
                     <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/5 via-transparent to-fuchsia-500/5 opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-xl"></div>
@@ -231,7 +256,7 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
                         <div className="relative">
                           <div className="absolute inset-0 bg-cyan-400/20 rounded-xl blur-xl opacity-50 group-hover:opacity-70 transition-all duration-500"></div>
                           <div className="relative bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20 border border-cyan-400/30 p-3 rounded-xl w-16 h-16 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-500 transform group-hover:scale-110">
-                            {event.id === 1 ? <Globe className="h-8 w-8 text-cyan-400" /> : <Award className="h-8 w-8 text-cyan-400" />}
+                            <Globe className="h-8 w-8 text-cyan-400" />
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -243,13 +268,19 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
                         </div>
                       </div>
                       
-                      <h3 className="text-xl font-semibold text-white group-hover:text-cyan-400 transition-colors duration-300 mb-3 font-orbitron">
+                      <h3 className="text-2xl font-semibold text-white group-hover:text-cyan-400 transition-colors duration-300 mb-2 font-orbitron">
                         {event.emoji} {event.title}
                       </h3>
                       
-                      <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 text-sm leading-relaxed font-inter">
+                      <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 text-base leading-relaxed font-inter mb-3">
                         {event.shortDesc}
                       </p>
+                      
+                      {event.partner && (
+                        <p className="text-cyan-400 text-sm font-medium mb-4 font-inter">
+                          {event.partner}
+                        </p>
+                      )}
                     </div>
                     
                     <div className="relative z-10 px-6 pb-6">
@@ -263,8 +294,8 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
                         </div>
                         
                         <div className="flex items-center text-sm text-gray-300 group-hover:text-gray-200 transition-colors duration-300">
-                          {event.venue ? <MapPin className="h-4 w-4 text-cyan-400 mr-3" /> : <Globe className="h-4 w-4 text-cyan-400 mr-3" />}
-                          <span className="font-medium">{event.venue || event.format}</span>
+                          <Globe className="h-4 w-4 text-cyan-400 mr-3" />
+                          <span className="font-medium">{event.format}</span>
                         </div>
                       </div>
                       
@@ -273,22 +304,13 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
                           onClick={() => handlers.handleViewEvent && handlers.handleViewEvent(event)}
                           className="flex-1 btn-neon-secondary text-sm font-medium"
                         >
-                          <Info className="h-4 w-4 mr-2" />
-                          Details
+                          View Committees
                         </button>
                         <button 
-                          onClick={() => {
-                            setSelectedEventForRegistration({
-                              ...event,
-                              price: 200,
-                              location: event.venue || event.format,
-                              time: "10:00 AM"
-                            });
-                            setRegistrationModalOpen(true);
-                          }}
+                          onClick={() => handlers.handleViewEvent && handlers.handleViewEvent(event)}
                           className="flex-1 btn-neon-primary text-sm font-medium"
                         >
-                          Register ₹200
+                          Register Now
                         </button>
                       </div>
                     </div>
@@ -298,14 +320,6 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
             </div>
           </div>
         </div>
-        <EventRegistrationModal
-          isOpen={registrationModalOpen}
-          onClose={() => {
-            setRegistrationModalOpen(false);
-            setSelectedEventForRegistration(null);
-          }}
-          event={selectedEventForRegistration}
-        />
         </>
       );
 
@@ -388,14 +402,6 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
               </div>
             </div>
           )}
-          <EventRegistrationModal
-            isOpen={registrationModalOpen}
-            onClose={() => {
-              setRegistrationModalOpen(false);
-              setSelectedEventForRegistration(null);
-            }}
-            event={selectedEventForRegistration}
-          />
         </>
       );
 
