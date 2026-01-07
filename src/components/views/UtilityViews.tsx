@@ -89,8 +89,9 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
       emoji: "🤖",
       shortDesc: "World's First AI-Powered Model United Nations",
       partner: "In association with Career Launcher",
-      date: "Coming Soon",
-      format: "Hybrid Event",
+      date: "January 24-25, 2026",
+      format: "In-Person Event",
+      location: "Career Launcher, Alwarpet, Chennai",
       participants: "Open to All",
       status: "Registration Open",
       statusColor: "green",
@@ -126,13 +127,15 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
           name: "UNSC",
           fullName: "United Nations Security Council",
           description: "Crisis diplomacy, real-time negotiations, power politics.",
-          icon: "🌐"
+          icon: "🌐",
+          eligibility: "Grades 9-12"
         },
         {
           name: "WHO",
           fullName: "World Health Organization",
           description: "Public health, outbreak response, policy + collaboration.",
-          icon: "🏥"
+          icon: "🏥",
+          eligibility: "Grades 6-8"
         }
       ],
       freeTraining: {
@@ -189,7 +192,7 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
         { time: "TBA", event: "Closing Ceremony & Awards" }
       ],
       registrationFee: "₹1800",
-      contact: "contact@speakyourmind.in"
+      contact: "hari@symedu.in"
     }
   ];
 

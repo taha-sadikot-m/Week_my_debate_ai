@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.event_registrations (
     user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
     full_name TEXT NOT NULL,
     email TEXT NOT NULL,
-    phone TEXT NOT NULL,
+    phone TEXT NOT NULL, 
     institution TEXT NOT NULL,
     year TEXT,
     city TEXT NOT NULL,

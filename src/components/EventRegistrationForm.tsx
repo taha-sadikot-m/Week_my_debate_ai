@@ -217,7 +217,7 @@ export default function EventRegistrationForm({ eventTitle, onClose }: EventRegi
       }, 3000);
     } catch (error) {
       console.error('Error saving registration:', error);
-      toast.error('Payment successful but there was an error saving your registration. Please contact support at contact@speakyourmind.in');
+      toast.error('Payment successful but there was an error saving your registration. Please contact support at hari@symedu.in');
       setIsSubmitted(true);
       setStep('success');
       setIsSubmitting(false);
