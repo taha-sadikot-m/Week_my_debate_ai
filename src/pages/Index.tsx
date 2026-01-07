@@ -1,11 +1,12 @@
 
 import { useCustomAuth } from '@/hooks/useCustomAuth';
 import AuthenticatedApp from '@/components/AuthenticatedApp';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const Index = () => {
   const { user, loading, isAuthenticated } = useCustomAuth();
   const navigate = useNavigate();
+  const { eventSlug } = useParams<{ eventSlug?: string }>();
 
   // Function to handle authentication requirement for protected features
   const requireAuth = (callback: () => void) => {
@@ -34,7 +35,7 @@ const Index = () => {
   }
 
   // Always show the app, but pass authentication status and requireAuth function
-  return <AuthenticatedApp isAuthenticated={isAuthenticated} requireAuth={requireAuth} />;
+  return <AuthenticatedApp isAuthenticated={isAuthenticated} requireAuth={requireAuth} eventSlug={eventSlug} />;
 };
 
 export default Index;

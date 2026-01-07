@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar, Globe, Users, Trophy, Award, ChevronRight, MapPin, Clock, DollarSign, Info, ArrowLeft } from 'lucide-react';
+import { Calendar, Globe, Users, Trophy, Award, ChevronRight, MapPin, Clock, DollarSign, Info, ArrowLeft, Share2, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 import LiveDebateSelection from '@/components/LiveDebateSelection';
 import CreateCommittee from '@/components/CreateCommittee';
@@ -64,6 +64,23 @@ interface UtilityViewsProps {
 }
 
 const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, instantDebateConfig, chanakyaDebateConfig, handlers }: UtilityViewsProps) => {
+  const [copiedEventId, setCopiedEventId] = useState<number | null>(null);
+
+  const getEventSlug = (eventTitle: string): string => {
+    return eventTitle.toLowerCase().replace(/\s+/g, '-');
+  };
+
+  const getEventLink = (event: any): string => {
+    const slug = getEventSlug(event.title);
+    return `${window.location.origin}/event/${slug}`;
+  };
+
+  const copyToClipboard = (text: string, eventId: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedEventId(eventId);
+    setTimeout(() => setCopiedEventId(null), 2000);
+  };
+
   // Event data
   const events = [
     {
@@ -311,6 +328,17 @@ const UtilityViews = ({ currentView, userTokens, selectedDebate, selectedEvent, 
                           className="flex-1 btn-neon-primary text-sm font-medium"
                         >
                           Register Now
+                        </button>
+                        <button
+                          onClick={() => copyToClipboard(getEventLink(event), event.id)}
+                          className="btn-neon-secondary p-2 text-sm font-medium"
+                          title="Copy event link"
+                        >
+                          {copiedEventId === event.id ? (
+                            <Check className="h-5 w-5" />
+                          ) : (
+                            <Share2 className="h-5 w-5" />
+                          )}
                         </button>
                       </div>
                     </div>

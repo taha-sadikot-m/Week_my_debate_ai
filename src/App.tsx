@@ -40,6 +40,7 @@ const App = () => (
             <Route path="/stt" element={<STT />} />
             <Route path="/profile-setup" element={<ProfileSetup />} />
             <Route path="/user-profile" element={<UserProfile />} />
+            <Route path="/event/:eventSlug" element={<Index />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
